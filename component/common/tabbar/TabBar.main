@@ -1,0 +1,22 @@
+<template>
+    <div class="tar-bar">
+        <slot></slot>
+    </div>
+</template>
+<script>
+    output = {
+
+    }
+</script>
+<style scoped>
+    .tar-bar{
+        padding-top: 3px;
+        height: 40px;
+        width: 100%;
+        border-top: 1px solid red;
+        position: fixed;
+        bottom: 0px;
+        background-color: pink;
+        display: flex;
+    }
+</style>

@@ -1,0 +1,42 @@
+<template>
+    <div class="tab-bar-item" m-js:click="divClick">
+        <img m-attr:src="url">
+        <span>{{text}}</span>
+    </div>
+</template>
+<script>
+    output = {
+        props: {
+            url: String,
+            text:{
+                type: String,
+                default: '首页'
+            }
+        },
+        created: function(){
+
+        },
+        methods: {
+            divClick: function () {
+                this.$emit('click', this.text);
+            }
+        }
+    }
+</script>
+<style scoped>
+    .tab-bar-item{
+        flex: 1;
+        height: 100%;
+        display: flex;
+        flex-direction:column;
+        align-items : center;
+        justify-content: center;
+    }
+    img{
+        width: 22px;
+        height: 22px;
+    }
+    span{
+        font-size: 11px;
+    }
+</style>
