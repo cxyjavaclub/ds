@@ -36,7 +36,7 @@
 
         },
         components: {
-            tabbar: tabBar,
+            tabbar:  tabBar,
             tabbaritem: tabBarItem
         },
         methods: {
