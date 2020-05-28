@@ -1,0 +1,141 @@
+<template>
+    <div  @mouseover="stopMobile" @mouseleave="startMobile" class="my-swi-per" :style="{width: width + 'px'}">
+        <div ref="imgContainer" class="img-container" :style="{width: width * (imgData.length + 2) + 'px'}">
+            <img m-for="v in imgData" :src="v"  :style="{width: width + 'px', height: height + 'px'}">
+        </div>
+        <div class="img-index-container">
+            <p m-for="v in imgData.length" :style="{backgroundColor: v === currentIndex ? 'red' : 'rgba(255, 255, 255, 0.1)'}"></p>
+        </div>
+    </div>
+</template>
+<script>
+    let runTransition = input('utils/animate.js');
+    output = {
+        props:{
+            imgData1: {
+                type: Array,
+                default:[
+                    'img/1.jpg',
+                    'img/2.jpg',
+                    'img/3.jpg',
+                    'img/4.jpg'
+                ]
+            },
+            width1: {
+                type: Number,
+                default: 500
+            },
+            height1: {
+                type: Number,
+                default: 300
+            },
+            transitionTime: {
+                type: Number,
+                default: 300
+            },
+            stopTime:{
+                type: Number,
+                default: 3000
+            }
+        },
+        data: function(){
+            return {
+                marginLeft: 0,
+                currentIndex: 1,
+                width: 500,
+                imgData: [
+                        'img/1.jpg',
+                        'img/2.jpg',
+                        'img/3.jpg',
+                        'img/4.jpg'
+                ],
+                height: 300
+            }
+        },
+        created: function () {
+            console.log(document.body.offsetWidth);
+        },
+        mounted: function () {
+            if(this.width1 === '100%'){
+                this.width = document.body.offsetWidth;
+            }
+            this.init();
+        },
+        methods: {
+            init: function () {
+                let imgContainer = this.$refs['imgContainer'][0];
+                let children = imgContainer.children;
+                if(children.length > 1){
+                    imgContainer.insertBefore(children[children.length - 1].cloneNode(true), children[0]);
+                    imgContainer.appendChild(children[1].cloneNode(true));
+                    this.mobileMarginLeft(-this.width);
+                    this.startMobile();
+                }
+            },
+            stopMobile: function () {
+                clearInterval(this.interval);
+            },
+            startMobile: function () {
+                let that = this;
+                this.interval = setInterval(() => {
+                    this.currentIndex++;
+                    runTransition(this.width, this.transitionTime, function (value) {
+                        that.marginLeft -= value;
+                        that.mobileMarginLeft(that.marginLeft);
+                    }, function () {
+                        that.marginLeft = -that.width * that.currentIndex;
+                        if(that.currentIndex === 5){
+                            that.currentIndex = 1;
+                            that.marginLeft = -that.width;
+                        }
+                        that.mobileMarginLeft(that.marginLeft);
+                    })
+                }, this.transitionTime + this.stopTime)
+            },
+            mobileMarginLeft: function (value) {
+                this.marginLeft = value;
+                this.$refs['imgContainer'][0].style.marginLeft = value + 'px';
+            },
+            touchstartFun: function () {
+                console.log(123)
+            },
+            touchmoveFun: function (e) {
+                console.log(e);
+            }
+        }
+    }
+</script>
+<style scoped>
+    .my-swi-per{
+        position: relative;
+        overflow: hidden;
+    }
+    p{
+        margin: 0;
+    }
+    .img-container{
+        font-size: 0;
+    }
+
+    .img-container img{
+
+    }
+    .img-index-container{
+        position: absolute;
+        bottom: 10px;
+        display: flex;
+        width: 100%;
+        justify-content: center;
+    }
+
+    .img-index-container p{
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        border: 1px solid black;
+        float: left;
+        margin-left: 10px;
+        background: rgba(255, 0, 0, 0.1);
+    }
+
+</style>
