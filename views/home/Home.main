@@ -1,13 +1,22 @@
 <template>
     <div>
         <swiper></swiper>
+        <test></test>
+<!--        <main-content></main-content>-->
+        <my-segment></my-segment>
     </div>
 </template>
 <script>
     let swiper = input('@/component/content/swiper/MySwiPer.main');
+    let test = input('@/component/content/test/Test.main');
+    let mainContent = input('@/component/content/maincontent/mainContent.main');
+    let MySegment = input('@/component/content/segment/MySegment.main');
     output = {
         components:{
             swiper: swiper,
+            test: test,
+            mainContent: mainContent,
+            MySegment: MySegment,
         },
     }
 </script>

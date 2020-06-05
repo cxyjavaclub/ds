@@ -1,0 +1,187 @@
+<template>
+    <!--总图块-->
+    <div class="segment">
+        <div class="header">
+            <h1>华为智慧屏</h1>
+            <!--标题底部横线-->
+            <div class="space"></div>
+        </div>
+        <!--左一-->
+        <div class="left">
+            <div class="left-text">
+                <h1>华为智慧屏 X65</h1>
+                <h3>优惠400元</h3>
+            </div>
+            <img src="img/12.jpg"/>
+        </div>
+        <!--右三-->
+        <div class="right">
+            <div class="right-item-one">
+                <img src="img/12.jpg"/>
+                <h1>华为智慧屏</h1>
+                <h2>新品上市 12期免息</h2>
+                <p>到手价 ￥9999999</p>
+            </div>
+            <div class="right-item-one">
+                <img src="img/12.jpg"/>
+                <h1>华为智慧屏</h1>
+                <h2>新品上市 12期免息</h2>
+                <p>到手价 ￥9999999</p>
+            </div>
+        </div>
+        <!--底部三-->
+        <div class="bottom">
+            <div class="bottom-item">
+                <img src="img/12.jpg"/>
+                <h1>华为智慧屏</h1>
+                <h2>新品上市 12期免息</h2>
+                <p>到手价 ￥9999999</p>
+            </div>
+            <div class="bottom-item">
+                <img src="img/11.jpg"/>
+                <h1>华为智慧屏</h1>
+                <h2>新品上市 12期免息</h2>
+                <p>到手价 ￥9999999</p>
+            </div>
+            <div class="bottom-item">
+                <img src="img/13.jpg"/>
+                <h1>华为智慧屏</h1>
+                <h2>新品上市 12期免息</h2>
+                <p>到手价 ￥9999999</p>
+            </div>
+        </div>
+        <div class="tail">
+            <p>查看更多的产品</p>
+        </div>
+    </div>
+</template>
+<script>
+    output = {}
+</script>
+<style scoped>
+    .segment {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        background-image: repeating-linear-gradient(90deg, #d3caef, #e8eff9 50%, #d3caef 100%);
+        overflow: hidden;
+    }
+
+    .header {
+        height: 200px;
+    }
+
+    .header h1 {
+        color: #4b4a8e;
+        text-align: center;
+        font-size: 52px;
+        font-weight: 500;
+        padding: 50px 0 20px 0;
+    }
+
+    .space {
+        height: 8px;
+        width: 180px;
+        margin: auto;
+        border-radius: 20px;
+        background-image: repeating-linear-gradient(90deg, #7e7ddb, #534daa 50%, #7e7ddb 100%)
+    }
+
+    /*---左----*/
+    .left-text {
+        text-align: center;
+    }
+
+    .left-text h1 {
+        font-weight: 400;
+        font-size: 30px;
+        letter-spacing: 2px;
+        padding: 50px 0 10px 0;
+    }
+
+    .left {
+        width: 48%;
+        height: 800px;
+        position: relative;
+        overflow: hidden;
+        margin: 0 30px;
+        border-radius: 8px;
+        background-color: #f9f9f9;
+    }
+
+    .left img {
+        bottom: -10px;
+        right: 25px;
+        position: absolute;
+    }
+
+    /*-----右-------*/
+    .right {
+        display: flex;
+        flex-direction: column-reverse;
+        width: 44%;
+        height: 800px;
+        position: absolute;
+        top: 200px;
+        right: 30px;
+    }
+
+    .right-item-one {
+        background-color: #FFFFFF;
+        width: 100%;
+        height: 400px;
+        margin: 5px auto;
+        text-align: center;
+    }
+
+    .right-item-one img {
+        width: 200px;
+    }
+
+    .right-item-one h2 {
+        padding: 10px;
+    }
+
+    .right-item-one p {
+        background: linear-gradient(to bottom right, #534daa, #7e7ddb);
+        border-radius: 30px;
+        padding: 10px;
+        width: 69%;
+        margin: auto;
+        color: white;
+    }
+
+    /*-----底部-------*/
+    .bottom {
+        display: flex;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        text-align: center;
+    }
+
+    .bottom-item {
+        background-color: #FFFFFF;
+        width: 30%;
+        height: 390px;
+        margin: 10px;
+        border-radius: 5px;
+    }
+
+    .bottom-item img {
+        width: 200px;
+    }
+
+    .bottom-item h2 {
+        padding: 20px;
+    }
+
+    .bottom-item p {
+        background: linear-gradient(to bottom right, #534daa, #7e7ddb);
+        border-radius: 30px;
+        padding: 10px;
+        width: 69%;
+        margin: auto;
+        color: white;
+    }
+</style>

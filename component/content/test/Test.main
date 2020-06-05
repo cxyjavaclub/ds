@@ -2,7 +2,7 @@
     <div style="height: 2000px">
         <h1>我是Test</h1>
         <img style="width: 100%;" src="@/img/7.jpg"/>
-    </div>
+    </div>d
 </template>
 <script>
     output = {}
@@ -10,5 +10,8 @@
 <style scoped>
     *{
         background-color: red !important;
+    }
+    div{
+        color: red
     }
 </style>
