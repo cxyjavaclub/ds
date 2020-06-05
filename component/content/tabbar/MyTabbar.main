@@ -1,28 +1,42 @@
 <template>
-    <div>
-        <tabbar>
-            <tabbaritem m-js:click="tabbarItemClick" m-for="v in tabs" m-attr:url="v.url" m-attr:text="v.text"></tabbaritem>
-        </tabbar>
-    </div>
+    <tab-bar>
+        <tab-bar-item ref="item"
+                      @selected="tabbarItemClick(index)"
+                      m-for="(v, index) in tabs"
+                      :url="v.url"
+                      :active-url="v.activeUrl"
+                      :big-mode="index === 0"
+                      :if-selected="index === 0"
+                      :text="v.text">
+        </tab-bar-item>
+    </tab-bar>
 </template>
 <script>
-    let {tabBar, tabBarItem} = input('component/common/tabbar/index.js')
+    let {tabBar, tabBarItem} = input('@/component/common/tabbar/index.js')
     output = {
         props:{
             tabs: {
                 type: Array,
                 default: [
                     {
-                        url: 'img/1.jpg',
+                        url: '@/img/1.jpg',
+                        activeUrl: '@/img/2.jpg',
                         text: '首页'
                     },
                     {
-                        url: 'img/2.jpg',
+                        url: '@/img/2.jpg',
+                        activeUrl: '@/img/3.jpg',
+                        text: '社区'
+                    },
+                    {
+                        url: '@/img/3.jpg',
+                        activeUrl: '@/img/4.jpg',
                         text: '购物车'
                     },
                     {
-                        url: 'img/3.jpg',
-                        text: '订单列表'
+                        url: '@/img/4.jpg',
+                        activeUrl: '@/img/5.jpg',
+                        text: '我的'
                     }
                 ]
             }
@@ -35,13 +49,22 @@
         created: function(){
 
         },
+        mounted: function(){
+
+        },
         components: {
-            tabbar:  tabBar,
-            tabbaritem: tabBarItem
+            tabBar:  tabBar,
+            tabBarItem: tabBarItem
         },
         methods: {
-            tabbarItemClick: function (s) {
-                this.$emit('click', s);
+            tabbarItemClick: function (index, text) {
+                let ref = this.$refs.item
+                for(let i = 0; i < ref.length; i++){
+                    if(i != index){
+                        ref[i].lostSelected();
+                    }
+                }
+                this.$emit('selected', text);
             }
         }
     }

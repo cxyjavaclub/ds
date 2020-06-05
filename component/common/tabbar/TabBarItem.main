@@ -1,24 +1,67 @@
 <template>
-    <div class="tab-bar-item" m-js:click="divClick">
-        <img m-attr:src="url">
-        <span>{{text}}</span>
+    <div class="tab-bar-item" @click="divClick">
+        <img m-if="ifSelected" :class="activeImgClass" :src="activeUrl">
+        <img m-else :src="url">
+        <div :style="{color: textColor}" class="text">{{text}}</div>
     </div>
 </template>
 <script>
     output = {
         props: {
+            id: String,
             url: String,
+            activeUrl: String,
             text:{
                 type: String,
                 default: '首页'
+            },
+            bigMode:{
+                type: Boolean,
+                default: false
+            },
+            ifSelected:{
+                type: Boolean,
+                default: false
+            },
+            activeTextColor:{
+                type: String,
+                default: 'red'
+            },
+            defaultTextColor:{
+                type: String,
+                default: 'black'
+            }
+        },
+        data: function () {
+            return {
+                textColor: 'black'
             }
         },
         created: function(){
-
+            if(!this.activeUrl){
+                this.activeUrl = this.url;
+            }
+            if(this.defaultTextColor){
+                this.textColor = this.defaultTextColor;
+            }
         },
         methods: {
             divClick: function () {
-                this.$emit('click', this.text);
+                this.selected();
+                this.$emit('selected', this.text);
+            },
+            selected: function () {
+                this.ifSelected = true;
+                this.textColor = this.activeTextColor;
+            },
+            lostSelected: function () {
+                this.ifSelected = false;
+                this.textColor = this.defaultTextColor;
+            },
+        },
+        computes:{
+            activeImgClass: function () {
+                return this.bigMode ? 'active-big-icon' : '';
             }
         }
     }
@@ -26,17 +69,25 @@
 <style scoped>
     .tab-bar-item{
         flex: 1;
-        height: 100%;
-        display: flex;
-        flex-direction:column;
-        align-items : center;
-        justify-content: center;
     }
     img{
+        margin-top: 2px;
+        vertical-align: middle;
+    }
+    .tab-bar-item img{
         width: 22px;
         height: 22px;
+        vertical-align: middle;
     }
-    span{
+
+    .tab-bar-item .active-big-icon{
+        border-radius: 50%;
+        height: 90%;
+        width: calc(40 * 0.90 * 1px);
+    }
+
+    .text{
+        margin-top: 1px;
         font-size: 11px;
     }
 </style>

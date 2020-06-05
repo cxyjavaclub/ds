@@ -8,38 +8,8 @@
 </head>
 <body>
 <div id="app">
-    <h1 m-if="showIndex === 0">首页</h1>
-    <h1 m-elif="showIndex === 1">购物车</h1>
-    <h1 m-elif="showIndex === 2">订单详情</h1>
-    <tabbar m-js:click="tabbarClick"></tabbar>
 </div>
 <script src="js/main.js"></script>
-<script>
-    let myTabBar = input('component/content/tabbar/MyTabbar.main')
-    new Main({
-        el: '#app',
-        data: {
-            showIndex: 0
-        },
-        components:{
-            tabBAr: myTabBar
-        },
-        methods: {
-            tabbarClick: function (s) {
-                switch(s){
-                    case '首页':
-                        this.showIndex = 0;
-                        break;
-                    case '购物车':
-                        this.showIndex = 1;
-                        break;
-                    case '订单列表':
-                        this.showIndex = 2;
-                        break;
-                }
-            }
-        }
-    });
-</script>
+<script src="start.js"></script>
 </body>
 </html>

@@ -1,0 +1,16 @@
+<template>
+    <div>
+        <swiper></swiper>
+    </div>
+</template>
+<script>
+    let swiper = input('@/component/content/swiper/MySwiPer.main');
+    output = {
+        components:{
+            swiper: swiper,
+        },
+    }
+</script>
+<style scoped>
+
+</style>

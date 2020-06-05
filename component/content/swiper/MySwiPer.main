@@ -9,21 +9,21 @@
     </div>
 </template>
 <script>
-    let runTransition = input('utils/animate.js');
+    let runTransition = input('@/utils/animate.js');
     output = {
         props:{
             imgData: {
                 type: Array,
                 default:[
-                    'img/1.jpg',
-                    'img/2.jpg',
-                    'img/3.jpg',
-                    'img/4.jpg'
+                    '@/img/1.jpg',
+                    '@/img/2.jpg',
+                    '@/img/3.jpg',
+                    '@/img/4.jpg'
                 ]
             },
             imgWidth: {
                 type: Number,
-                default: 500
+                default: '100%'
             },
             imgHeight: {
                 type: Number,

@@ -7,10 +7,10 @@
      * components：组件注册属性 as Object
      */
     function Main(obj) {
-        let com = MainTool.methods._init(obj);
+        let com = Main.MainTool.methods._init(obj);
         //添加样式
         if (com.style && com.style.value) {
-            MainTool.methods.addStyleToHead(com.style.value);
+            Main.MainTool.methods.addStyleToHead(com.style.value);
         }
         return com;
     }
@@ -21,8 +21,18 @@
     (function () {
         //全局组件存储
         Main.globalComponents = [];
-        //插件存储
-        Main.plugins = [];
+        //组件加载完成运行
+        Main.componentLoadRuns = [];
+        //组件原型解析完成运行
+        Main.componentPrototypeLoadRuns = [];
+        //框架解析普通标签之前运行
+        Main.parseOrdinaryLabelBeforeRuns = [];
+        //框架解析普通标签完成运行
+        Main.parseOrdinaryLabelLoadRuns = [];
+        //框架解析普通属性之前运行
+        Main.parseOrdinaryAttrBeforeRuns = [];
+        //框架解析m-attr属性之前运行
+        Main.parseMAttrAttrBeforeRuns = [];
     })();
 
     /**
@@ -31,10 +41,55 @@
      */
     Main.component = function (name, com) {
         //初始化组件
-        MainTool.methods.initComponent(com);
+        Main.MainTool.methods.initComponent(name, com);
         //写入全局组件
         Main.globalComponents[name] = com;
     };
+
+    /**
+     * 添加组件加载完成运行函数
+     * @param fun
+     */
+    Main.addComponentLoadRuns = function(fun){
+        Main.componentLoadRuns.push(fun);
+    }
+    /**
+     * 添加组件解析完成运行函数
+     * @param fun
+     */
+    Main.addComponentPrototypeLoadRuns = function(fun){
+        Main.componentPrototypeLoadRuns.push(fun);
+    }
+
+    /**
+     * 添加框架解析普通标签之前运行
+     * @param fun
+     */
+    Main.addParseOrdinaryLabelBeforeRuns = function(fun){
+        Main.parseOrdinaryLabelBeforeRuns.push(fun);
+    }
+
+    /**
+     * 框架解析普通标签完成运行
+     * @param fun
+     */
+    Main.addParseOrdinaryLabelLoadRuns = function(fun){
+        Main.parseOrdinaryLabelLoadRuns.push(fun);
+    }
+    /**
+     * 框架解析普通属性之前运行
+     * @param fun
+     */
+    Main.addParseOrdinaryAttrBeforeRuns = function(fun){
+        Main.parseOrdinaryAttrBeforeRuns.push(fun);
+    }
+    /**
+     * 框架解析m-attr属性之前运行
+     * @param fun
+     */
+    Main.addParseMAttrAttrBeforeRuns= function(fun){
+        Main.parseMAttrAttrBeforeRuns.push(fun);
+    }
 
     /**
      * 添加插件
@@ -42,15 +97,14 @@
      */
     Main.use = function (plugin) {
         //插件初始化
-        plugin.initAll();
-        Main.plugins.push(plugin);
+        plugin.install(Main);
     }
 
     /**
      * 订阅器
      * @constructor
      */
-    function Dep() {
+    Main.Dep = function() {
         //订阅者容器
         this.subs = [];
         //增加一个订阅者
@@ -72,7 +126,7 @@
      * @param fun
      * @constructor
      */
-    function Subscriber(data, name, fun) {
+    Main.Subscriber = function(data, name, fun) {
         //数据对象
         this.data = data;
         //数据名称
@@ -81,11 +135,11 @@
         this.fun = fun;
         //添加到订阅器
         this.get = function () {
-            Dep.objValue = data;
-            Dep.value = this;
+            Main.Dep.objValue = data;
+            Main.Dep.value = this;
             let value = data[name];
-            Dep.value = null;
-            Dep.objValue = null;
+            Main.Dep.value = null;
+            Main.Dep.objValue = null;
             return value;
         }
         this.run = function () {
@@ -176,7 +230,7 @@
     /**
      * 组件解析工具
      */
-    let MainTool = {
+    Main.MainTool = {
         //方法
         methods: {
 //===========================================================================
@@ -197,6 +251,7 @@
              * @param obj
              */
             mergeConfig: function (obj) {
+
                 //添加el
                 if (!obj.el) {
                     obj.el = null;
@@ -297,13 +352,18 @@
              * 初始化组件,提取组件原型
              * @param newCom
              */
-            initComponent: function (newCom) {
+            initComponent: function (name, newCom) {
                 //合并配置并生成新的组件
                 this.mergeConfig(newCom);
 
+                //当组件没有name时生成name
+                if(!newCom.name){
+                    newCom.name = name;
+                }
+
                 //检测组件是否嵌套
                 for (const [name, value] of Object.entries(newCom.children)) {
-                    this.initComponent(value);
+                    this.initComponent(name, value);
                 }
 
                 //组件样式初始化
@@ -328,8 +388,24 @@
                         }
                     }
                 }
+                //组件原型解析完成运行
+                this.componentPrototypeLoad(newCom);
             },
 //======================================================================
+
+            /**
+             * 组件数据this化
+             * @param storageObj
+             */
+            componentDataThisChange: function (storageObj) {
+                for (const [name, value] of Object.entries(storageObj)) {
+                    if (name === 'data' || name === 'methods'  || name === '$props') {
+                        for (const v in value) {
+                            this.resetComponentKeys(storageObj, name, v);
+                        }
+                    }
+                }
+            },
 
             /**
              * 组件对象重置
@@ -337,15 +413,10 @@
              */
             resetComponentObj: function (storageObj) {
                 for (const [name, value] of Object.entries(storageObj)) {
-                    if (name === 'data' || name === 'methods') {
-                        if (name === 'data') {
-                            this.observe(value);
-                        }
+                    if (name === 'data' || name === '$props') {
+                        this.observe(value);
                         for (const v in value) {
-                            this.resetComponentKeys(storageObj, name, v);
-                            if (name === 'data') {
-                                this.rewriteArrayPrototypeFun(value[v], value, v)
-                            }
+                            this.rewriteArrayPrototypeFun(value[v], value, v)
                         }
                     }
                 }
@@ -398,6 +469,57 @@
             },
 
             /**
+             * 框架解析普通标签之前运行
+             * @param dom  dom元素
+             * @param comObj 组件对象
+             */
+            parseOrdinaryLabelBefore: function (dom, comObj) {
+                //框架解析普通标签之前运行
+                for (const p of Main.parseOrdinaryLabelBeforeRuns) {
+                    p(dom, comObj);
+                }
+            },
+
+            /**
+             * 框架解析普通标签完成运行
+             * @param dom  dom元素
+             * @param comObj 组件对象
+             */
+            parseOrdinaryLabelLoad: function (dom, comObj) {
+                //框架解析普通标签完成运行
+                for (const p of Main.parseOrdinaryLabelLoadRuns) {
+                    p(dom, comObj);
+                }
+            },
+
+            /**
+             * 框架解析m-attr属性之前运行
+             * @param type 0:普通html标签， 1：组件标签
+             * @param o    携带已解析的值为对象对象里只有一个属性就是value
+             * @param attr 经过属性加工厂加工过的属性 可能为空
+             * @param dom  dom元素
+             * @param comObj 组件对象
+             */
+            parseMAttrAttrBefore: function (type, o, attr, dom, comObj) {
+                //框架解析m-attr属性之前运行
+                for (const p of Main.parseMAttrAttrBeforeRuns) {
+                    p(type, o, attr, dom, comObj);
+                }
+            },
+
+            /**
+             * 框架解析普通属性之前运行
+             * @param attr 经过属性加工厂加工过的属性 可能为空
+             * @param dom dom元素
+             * @param comObj 组件对象
+             */
+            parseOrdinaryAttrBefore: function (attr, dom, comObj) {
+                //框架解析普通属性之前运行
+                for (const p of Main.parseOrdinaryAttrBeforeRuns) {
+                    p(attr, dom, comObj);
+                }
+            },
+            /**
              * 组件解析之前完成
              */
             componentParseFront: function (comObj) {
@@ -405,20 +527,38 @@
                     comObj.created();
                 }
             },
+
+            /**
+             * 组件原型解析完成运行
+             * @param comObjPrototype
+             */
+            componentPrototypeLoad: function (comObjPrototype) {
+                //运行组件原型解析完成运行
+                for (const p of Main.componentPrototypeLoadRuns) {
+                    p(comObjPrototype);
+                }
+            },
             /**
              * 组件加载完成
              * @param comObj
              */
             componentLoad: function (comObj) {
-                this.inputJsAndCssUrl(comObj);
                 if (comObj.mounted) {
                     comObj.mounted();
                 }
-                comObj.$root = Main.$root;
-                //运行插件添加组件方法
-                for (const p of Main.plugins) {
-                    p.addComponent(comObj);
+            },
+
+            /**
+             * 组件解析且添加到dom完成
+             * @param comObj
+             */
+            componentAddDomLoad: function(comObj){
+                this.inputJsAndCssUrl(comObj);
+                //运行组件加载完成运行函数
+                for (const p of Main.componentLoadRuns) {
+                    p(comObj);
                 }
+                comObj.$root = Main.$root;
             },
 
             /**
@@ -431,25 +571,41 @@
             _init: function (obj) {
                 let newCom = obj;
                 //初始化组件
-                this.initComponent(newCom);
+                this.initComponent('showMain', newCom);
 
                 //通过组件原型生成组件
                 newCom = this.findPrototypeCreateComponent(newCom);
-
-                //组件重置
-                this.resetComponentObj(newCom);
 
                 //解析组件m-if
                 let mIfFlag = this.parseComponentMIF(newCom);
                 // //解析所有的类型标签
                 if (mIfFlag) {
                     Main.$root = newCom;
+
                     //首先隐藏
                     let dom = document.createTextNode('');
+
+                    //替换标签
                     this.replaceLabelElement(dom, newCom.elDom);
+
+                    //组件数据this化
+                    this.componentDataThisChange(newCom);
+
+                    //组件解析之前完成
                     this.componentParseFront(newCom);
+
+                    //组件重置
+                    this.resetComponentObj(newCom);
+
+                    //解析所有的类型标签
                     this.parseAllTypeLabel(newCom.elDom, newCom);
+
+                    //组件加载完成
                     this.componentLoad(newCom);
+
+                    //组件解析且添加到dom完成
+                    this.componentAddDomLoad(newCom);
+
                     //解析完成显示
                     this.replaceLabelElement(newCom.elDom, dom);
                     Main.$root = null;
@@ -465,16 +621,20 @@
              */
             parseComponentDomChild: function (dom, newCom, ifArr) {
                 if (dom) {
-                    let child = dom.children;
+                    let child = dom.childNodes;
                     for (let i = 0; i < child.length; i++) {
-                        if (!this.arrayFind(ifArr, child[i])) {
-                            //解析所有的类型标签
-                            this.parseAllTypeLabel(child[i], newCom, null, function (com) {
-                                //组件模板替换
-                                this.componentTemplateReplace(dom, com.elDom, child[i]);
-                            }, null, function (obj) {
-                                i += obj.num == 0 ? -1 : obj.num - 1;
-                            });
+                        //#text是文本
+                        //#comment是注释文本
+                        if (child[i].nodeName != '#text' && child[i].nodeName != '#comment') {
+                            if (!this.arrayFind(ifArr, child[i])) {
+                                //解析所有的类型标签
+                                this.parseAllTypeLabel(child[i], newCom, null, function (com) {
+                                    //组件模板替换
+                                    this.componentTemplateReplace(dom, com.elDom, child[i]);
+                                }, null, function (obj) {
+                                    i += obj.num == 0 ? -1 : obj.num - 1;
+                                });
+                            }
                         }
                     }
                 }
@@ -508,7 +668,7 @@
              * @param funMFor  m-for运行函数运行函数
              */
             parseAllTypeLabel: function (dom, comObj, funSlot, funCom, funHtml, funMFor) {
-                if (dom) {
+                if (dom && dom instanceof HTMLElement) {
                     //检测当前dom不是组件根dom
                     if (dom !== comObj.elDom) {
                         //解析组件标签的m-for
@@ -522,21 +682,22 @@
                     let slotObj = this.parseComponentSlot(dom, comObj, funSlot && funSlot.on);
                     if (!slotObj) {
                         //通过名称获取组件
-                        let name = dom.tagName.toLowerCase();
+                        let name = dom.tagName;
                         let com = this.getFindNameComponent(comObj, name);
                         //获取到组件
                         if (com) {
-                            //当组件没有name时生成name
-                            if(!com.name){
-                                com.name = name;
-                            }
                             //解析组件并替换
                             let newCom = this.parseComponent(com, dom, comObj);
                             this.runFunction(funCom, newCom);
+                            this.componentAddDomLoad(newCom);
                         } else {
+                            //框架解析普通标签之前运行
+                            this.parseOrdinaryLabelBefore(dom, comObj);
                             //解析普通html标签
                             this.parseOrdinaryLabel(dom, comObj);
                             this.runFunction(funHtml, dom);
+                            //框架解析普通标签完成运行
+                            this.parseOrdinaryLabelLoad(dom, comObj);
                         }
                     } else {
                         if (funSlot) {
@@ -546,7 +707,6 @@
                                 this.runFunction(funSlot.fun, slotObj);
                             }
                         }
-
                     }
                 }
             },
@@ -574,20 +734,16 @@
              * @param parentCom
              */
             parseComponent: function (comPrototype, comLabel, parentCom) {
-
+                let that = this;
                 //通过组件生成新的组件
                 let copyCom = this.findPrototypeCreateComponent(comPrototype);
 
-                //组件对象重置
-                this.resetComponentObj(copyCom);
-
-                //解析组件之前
-                this.componentParseFront(copyCom);
-
                 //elDom为假
                 if (!copyCom.elDom) {
+                    //解析组件之前
+                    this.componentParseFront(copyCom);
                     copyCom.elDom = document.createTextNode('');
-                    //向所有组件添加最顶层组件
+                    //组件加载完成
                     this.componentLoad(copyCom);
                     return copyCom;
                 }
@@ -605,15 +761,26 @@
                     //添加组件原始dom
                     this.addComponentOriginalDom(copyCom, comLabel);
 
-
                     //格式组件的props
                     this.formatComponentProps(copyCom);
 
                     //解析组件标签的属性
                     this.parseComponentLabelAttr(comLabel, parentCom, copyCom);
 
+                    //组件数据this化
+                    this.componentDataThisChange(copyCom);
+
+                    //解析组件之前
+                    this.componentParseFront(copyCom);
+
+                    //组件对象重置
+                    this.resetComponentObj(copyCom);
+
                     //解析所有的类型标签
-                    this.parseAllTypeLabel(copyCom.elDom, copyCom);
+                    this.parseAllTypeLabel(copyCom.elDom, copyCom, null, function (com) {
+                        copyCom.elDom = com.elDom;
+                        that.importComponentStyle(copyCom, com);
+                    });
 
                     //引入组件样式
                     this.importComponentStyle(parentCom, copyCom);
@@ -624,7 +791,7 @@
                     //组件插槽替换
                     this.componentSlotReplace(comLabel, copyCom, parentCom);
 
-                    //向所有组件添加最顶层组件
+                    //组件加载完成
                     this.componentLoad(copyCom);
                     return copyCom;
                 } else {
@@ -632,7 +799,6 @@
                     obj.elDom = document.createTextNode('');
                     return obj;
                 }
-
             },
             /**
              * 解析组件并替换
@@ -753,16 +919,22 @@
                 let newAttrs = this.attrProcessingPlant(dom, 0);
                 //解析每一个属性
                 for (let a of newAttrs) {
-                    //解析ref
-                    this.parseComponentRef(a, dom, comObj);
+                    //解析普通属性
+                    if(this.parseOrdinaryAttr(a, dom, comObj)){
+                        dom.setAttribute(a.name, a.value);
+                    }else {
+                        //解析ref
+                        this.parseComponentRef(a, dom, comObj);
 
-                    //解析m-attr
-                    this.parseComponentMAttr(a, dom, comObj);
+                        //解析m-attr
+                        this.parseComponentMAttr(a, dom, comObj);
 
-                    //解析组件m-js
-                    this.parseComponentMJs(a, dom, comObj);
-                    //解析组件m-text
-                    this.parseComponentMText(a, dom, comObj);
+                        //解析组件m-js
+                        this.parseComponentMJs(a, dom, comObj);
+
+                        //解析组件m-text
+                        this.parseComponentMText(a, dom, comObj);
+                    }
                 }
             },
 
@@ -788,7 +960,7 @@
                                 let text = c.textContent;
                                 let that = this;
                                 this.depNamesDispose(function (object, key, parameterObj) {
-                                    new Subscriber(object, key, function () {
+                                    new Main.Subscriber(object, key, function () {
                                         c.textContent = text.replace(e[0], that.parseFrameString(parameterObj, e[1]));
                                     })
                                 }, comObj.parseAddObjData);
@@ -805,20 +977,22 @@
              * @param childComObj 子组件对象
              */
             parseComponentLabelAttr: function (labelDom, comObj, childComObj) {
-                //属性加工
-                let attrs = this.attrProcessingPlant(labelDom, 1);
-                for (let a of attrs) {
-                    //解析组件标签ref
-                    this.parseComponentLabelRef(a, childComObj, comObj);
+                if(labelDom) {
+                    //属性加工
+                    let attrs = this.attrProcessingPlant(labelDom, 1);
+                    for (let a of attrs) {
+                        //解析组件标签ref
+                        this.parseComponentLabelRef(a, childComObj, comObj);
 
-                    //解析组件标签常规属性
-                    this.parseComponentLabelRoutine(a, childComObj);
+                        //解析组件标签常规属性
+                        this.parseComponentLabelRoutine(a, childComObj);
 
-                    //解析组件标签m-attr
-                    this.parseComponentLabelMAttr(a, comObj, childComObj);
+                        //解析组件标签m-attr
+                        this.parseComponentLabelMAttr(a, comObj, childComObj);
 
-                    //解析组件标签m-js
-                    this.parseComponentLabelMJs(a, comObj, childComObj);
+                        //解析组件标签m-js
+                        this.parseComponentLabelMJs(a, comObj, childComObj);
+                    }
                 }
             },
 
@@ -828,6 +1002,9 @@
              * @param comObj
              */
             parseComponentMIF: function (comObj) {
+                if(!(comObj.elDom instanceof HTMLElement)) {
+                    return true;
+                }
                 let mIFFlag = this.parseMIFDispose(comObj.elDom, comObj, 'm-if');
                 if (!mIFFlag && comObj.elDom.hasAttribute('m-if')) {
                     if (comObj.elDom.parentNode) {
@@ -946,7 +1123,7 @@
                             let that = this;
                             let runObj = this.parseFrameString(comObj, v.attr);
                             this.depNamesDispose(function (object, key, parameterObj) {
-                                new Subscriber(object, key, function () {
+                                new Main.Subscriber(object, key, function () {
                                     let val = that.parseFrameString(parameterObj, v.attr);
                                     if (val) {
                                         v.show = true;
@@ -1186,7 +1363,7 @@
                     } else {
                         comObj.parseAddObjData = addObjData;
                         for (const [name] of Object.entries(addObjData)) {
-                            Dep.names = [];
+                            Main.Dep.names = [];
                             let v = comObj[name];
                             if (v != undefined) {
                                 let names = this.getDepNames();
@@ -1317,7 +1494,7 @@
                             parameters[i] = parameters[i].trim();
                         }
                         this.depNamesDispose(function (object, key, parameterObj) {
-                            new Subscriber(object, key, function () {
+                            new Main.Subscriber(object, key, function () {
                                 for (const d of obj.doms) {
                                     that.removeLabelElement(d);
                                 }
@@ -1469,8 +1646,8 @@
              * 获取DepNames
              */
             getDepNames: function () {
-                let names = Dep.names;
-                Dep.names = null;
+                let names = Main.Dep.names;
+                Main.Dep.names = null;
                 return names;
             },
 
@@ -1571,6 +1748,9 @@
              * @param parentCom 组件标签所在的组件
              */
             componentSlotReplace: function (dom, comObj, parentCom) {
+                if(!dom){
+                    return;
+                }
                 //查找标签的m-slot
                 let arrObj = this.searchLabelMSlot(dom);
                 let saveArr = {};
@@ -1871,7 +2051,7 @@
              */
             dataHijack: function (obj, name, value) {
                 this.observe(value);
-                let dep = new Dep();
+                let dep = new Main.Dep();
                 let that = this;
                 Object.defineProperty(obj, name, {
                     configurable: true,
@@ -1918,12 +2098,12 @@
              * @param dep
              */
             depIndirectDispose: function (dep, obj, name) {
-                if (Dep.objValue === obj && dep) {
-                    dep.addSub(Dep.value);
+                if (Main.Dep.objValue === obj && dep) {
+                    dep.addSub(Main.Dep.value);
                 }
-                if (Dep.names) {
-                    Dep.names.push(obj)
-                    Dep.names.push(name)
+                if (Main.Dep.names) {
+                    Main.Dep.names.push(obj)
+                    Main.Dep.names.push(name)
                 }
             },
 
@@ -1936,7 +2116,7 @@
              */
             computesDataHijack: function (obj, name, value, comObj) {
                 let constructor = value.constructor;
-                let dep = new Dep();
+                let dep = new Main.Dep();
                 let that = this;
                 if (constructor === Function) {
                     Object.defineProperty(obj, name, {
@@ -2099,18 +2279,39 @@
             },
             //通过名称获取组件
             getFindNameComponent: function (newCom, name) {
-                let com = this.getFindNamePartComponent(newCom, name);
+                let originalName = name.toLocaleLowerCase();
+                //解析驼峰命名
+                name = this.parseHumpName(originalName)
+
+                let com = this.getFindNamePartComponent(newCom, name, originalName);
                 if (!com) {
-                    com = this.getFindNameGlobalComponent(name);
+                    com = this.getFindNameGlobalComponent(name, originalName);
                 }
                 return com;
             },
+
+            /**
+             * 组件名称匹配
+             * @param n1
+             * @param n2
+             * @param originalName
+             * @returns {boolean}
+             */
+            componentNameMatch: function (n1, n2, originalName) {
+                n2 = n2.charAt(0).toLocaleLowerCase() + n2.substring(1);
+                if(n1 === n2){
+                    return true;
+                }
+                if(n2 === originalName){
+                    return true;
+                }
+                return false;
+            },
+
             //通过名称获取局部组件
-            getFindNamePartComponent: function (newCom, name) {
+            getFindNamePartComponent: function (newCom, name, originalName) {
                 for(let [n, value] of Object.entries(newCom.children)){
-                    let n1 = n.toLocaleLowerCase();
-                    let n2 = name.toLocaleLowerCase();
-                    if(n1 == n2){
+                    if(this.componentNameMatch(name, n, originalName)){
                         //通过名称查找局部组件
                         return value;
                     }
@@ -2118,11 +2319,9 @@
             },
 
             //通过名称获取全局组件
-            getFindNameGlobalComponent: function (name) {
+            getFindNameGlobalComponent: function (name, originalName) {
                 for(let [n, value] of Object.entries(Main.globalComponents)){
-                    let n1 = n.toLocaleLowerCase();
-                    let n2 = name.toLocaleLowerCase();
-                    if(n1 == n2){
+                    if(this.componentNameMatch(name, n, originalName)){
                         //通过名称查找全局组件
                         return value;
                     }
@@ -2136,7 +2335,11 @@
                 if (flag) {
                     return div;
                 }
-                return div.children[0];
+                if(div.children.length > 0){
+                    return div.children[0];
+                }else{
+                    return div.childNodes[0];
+                }
             },
             //通过名称生成标签
             createLabel: function (name) {
@@ -2144,7 +2347,7 @@
             },
             //引入组件样式
             importComponentStyle: function (newCom, com) {
-                if (com && com.style) {
+                if (newCom && com && com.style) {
                     let style = newCom.style.value;
                     let comStyle = com.style.value;
                     style = style ? style : '';
@@ -2157,18 +2360,20 @@
             //comObj存储组件
             //newCom存储位置
             addBloatedComponent: function (comObj, newCom) {
-                let name = comObj.name;
-                let flag = this.isComponentKeyHas(comObj, newCom);
-                if (flag) {
-                    //存在组件
-                    let arr = newCom.childrenDom.get(name);
-                    arr.push(comObj);
-                } else {
-                    //不存在组件
-                    //定义一个数组
-                    let arr = new Array();
-                    arr.push(comObj);
-                    newCom.childrenDom.set(name, arr);
+                if(comObj && newCom) {
+                    let name = comObj.name;
+                    let flag = this.isComponentKeyHas(comObj, newCom);
+                    if (flag) {
+                        //存在组件
+                        let arr = newCom.childrenDom.get(name);
+                        arr.push(comObj);
+                    } else {
+                        //不存在组件
+                        //定义一个数组
+                        let arr = new Array();
+                        arr.push(comObj);
+                        newCom.childrenDom.set(name, arr);
+                    }
                 }
             },
             //检测渲染对象里是否有key
@@ -2199,8 +2404,18 @@
                     }
                     //解析驼峰命名
                     obj.incidentName = this.parseHumpName(obj.incidentName);
+                    //解析函数参数列表
+                    let parameterAdd = [];
+                    let parseObj = this.parseFunctionParameterList(obj.value);
+                    if(parseObj){
+                        obj.value = parseObj.funName;
+                        for(let c of parseObj.nameList){
+                            let v = this.parseFrameString(comObj, c);
+                            parameterAdd.push(v);
+                        }
+                    }
                     childComObj.$emits[obj.incidentName] = function (...arr) {
-                        comObj[obj.value].apply(comObj, arr);
+                        comObj[obj.value].apply(comObj, parameterAdd.concat(arr));
                     }
                 }, this);
             },
@@ -2215,7 +2430,9 @@
                     let strArr = name.split('-');
                     str = strArr[0];
                     for (let i = 1; i < strArr.length; i++) {
-                        str += strArr[i].charAt(0).toUpperCase() + strArr[i].substring(1);
+                        if(strArr[i]) {
+                            str += strArr[i].charAt(0).toUpperCase() + strArr[i].substring(1);
+                        }
                     }
                 }
                 return str;
@@ -2255,6 +2472,12 @@
                         let ex = /[^{}]*?{[^{}]*?}/g;
                         if (style.scoped) {
                             let exec;
+                            //设置组件标签局部属性
+                            let uuid = 'm-css-' + this.getUUid(16);
+                            let uuidStr = '[' + uuid + ']';
+                            //将写入组件样式uuid属性
+                            newCom.style.uuid = uuid;
+
                             while(exec = ex.exec(str)){
                                 let addIndex = exec.index;
                                 let ex1 = /^[^{}]*/g;
@@ -2274,12 +2497,6 @@
                                             name = s1.substring(0, search);
                                             addIndex += search;
                                         }
-                                        let elms = dom.querySelectorAll(name);
-                                        let uuid = 'm-css-' + this.getUUid(16);
-                                        let uuidStr = '[' + uuid + ']';
-                                        for (let e of elms) {
-                                            e.setAttribute(uuid, '');
-                                        }
                                         str = str.slice(0, addIndex) + uuidStr + str.slice(addIndex);
                                         if(search !== (-1)){
                                             addIndex += s1.length - search;
@@ -2289,6 +2506,8 @@
                                     }
                                 }
                             }
+                            //写入dom的uuid
+                            this.writeDomUUID(dom, uuid);
                             //将组件模板更新
                             newCom.template = dom.innerHTML;
                         }
@@ -2296,6 +2515,18 @@
                         newCom.style.value = str;
                     }
                 }
+            },
+
+            /**
+             * 写入dom的uuid
+             * @param dom
+             * @param uuid
+             */
+            writeDomUUID: function (dom, uuid) {
+                for (let e of dom.children) {
+                    this.writeDomUUID(e, uuid);
+                }
+                dom.setAttribute(uuid, '');
             },
             //字符串格式化
             stringFormat: function (str) {
@@ -2386,6 +2617,38 @@
                     }
                 }
             },
+
+            /**
+             * 解析函数参数列表
+             * @param str
+             * @returns
+             */
+            parseFunctionParameterList: function (str) {
+                let ex = /\(.*?\)/.exec(str);
+                if(ex && ex.length != 0) {
+                    let e = ex[0];
+                    e = e.trim();
+                    if(e) {
+                        let funName = str.replace(e, '');
+                        e = e.substring(1, e.length - 1);
+                        let nameList = [];
+                        let split = e.split(',');
+                        for(let s of split){
+                            let s1 = s.trim();
+                            if(s1){
+                                nameList.push(s1) ;
+                            }
+                        }
+                        return {
+                            funName: funName,
+                            nameList: nameList,
+                            parameterList: e
+                        }
+                    }
+                }
+                return null;
+            },
+
             /**
              * 解析组件m-js
              * @param attr 属性对象
@@ -2394,32 +2657,27 @@
              */
             parseComponentMJs: function (attr, dom, comObj) {
                 this.parseAttrMJS(attr, function (obj) {
-                    let ex = /\(.*?\)/.exec(obj.value);
                     let funRun;
-                    if(ex && ex.length != 0){
+                    //解析函数参数列表
+                    let parseObj = this.parseFunctionParameterList(obj.value);
+                    if(parseObj){
                         let csStr= '';
-                        let e = ex[0];
-                        obj.value = obj.value.replace(e, '');
-                        e = e.substring(1, e.length - 1);
-                        let csList = e.split(',');
-                        for(let c of csList){
-                            if(c){
-                                c = c.trim();
-                                if(c != '$dom'){
-                                    let v = this.parseFrameString(comObj, c);
-                                    csStr += `${v},`;
-                                }else{
-                                    csStr += '$dom,';
-                                }
+                        obj.value = parseObj.funName;
+                        for(let c of parseObj.nameList){
+                            if(c != '$dom' && c != '$event'){
+                                let v = this.parseFrameString(comObj, c);
+                                csStr += `${v},`;
+                            }else{
+                                csStr += c + ',';
                             }
                         }
                         if(csStr){
                             csStr = csStr.substring(0, csStr.length - 1);
-                            csStr = `obj.${obj.value}(event,${csStr})`;
-                            funRun = new Function('event', 'obj', '$dom', csStr);
+                            csStr = `obj.${obj.value}(${csStr})`;
+                            funRun = new Function('$event', 'obj', '$dom', csStr);
                         }
-
                     }
+
                     //添加属性事件
                     let f = function () {
                         console.error(dom.outerHTML + ':不存在该事件！！！')
@@ -2460,7 +2718,7 @@
                     let runValue = this.parseFrameString(comObj, obj.value);
                     let that = this;
                     this.depNamesDispose(function (object, key, parameterObj) {
-                        new Subscriber(object, key, function () {
+                        new Main.Subscriber(object, key, function () {
                             dom.innerHTML = that.parseFrameString(parameterObj, obj.value);
                         })
                     }, comObj.parseAddObjData);
@@ -2515,7 +2773,6 @@
                     let runObj = this.parseFrameString(comObj, obj.value);
                     let that = this;
                     this.depNamesDispose(function (object, key, parameterObj, length) {
-
                         if (length === 2 && obj.incidentName === 'value' && dom.tagName.toLocaleLowerCase() === 'input') {
                             let f = function () {
                                 object[key] = dom.value;
@@ -2530,13 +2787,19 @@
                                 }
                             }
                         }
-
-                        new Subscriber(object, key, function () {
-                            let value = that.parseSpecialMAttrString(obj.incidentName, dom, that.parseFrameString(parameterObj, obj.value), runObj);
+                        new Main.Subscriber(object, key, function () {
+                            let v = that.parseFrameString(parameterObj, obj.value);
+                            let o = {value: v};
+                            that.parseMAttrAttrBefore(0, o, attr, dom, comObj);
+                            let value = that.parseSpecialMAttrString(obj.incidentName, dom, o.value, runObj);
                             runObj = value;
                             that.addDomAttr(dom, obj.incidentName, value);
                         })
                     }, comObj.parseAddObjData)
+
+                    let o = {value: runObj};
+                    this.parseMAttrAttrBefore(0, o, attr, dom, comObj);
+                    runObj = o.value;
 
                     //特殊属性处理
                     runObj = this.parseSpecialMAttrString(obj.incidentName, dom, runObj);
@@ -2575,9 +2838,15 @@
                     if (type === 0) {
                         let that = this;
                         runValue = this.parseFrameString(parentComObj, value);
+                        let o = {value: runValue};
+                        this.parseMAttrAttrBefore(1, o, null, dom, comObj);
+                        runValue = o.value;
                         this.depNamesDispose(function (object, key, parameterObj) {
-                            new Subscriber(object, key, function () {
-                                let v = that.parseSpecialMAttrString(name, dom, that.parseFrameString(parameterObj, value), runValue);
+                            new Main.Subscriber(object, key, function () {
+                                let pv = that.parseFrameString(parameterObj, value);
+                                let o = {value: pv};
+                                that.parseMAttrAttrBefore(1, o, null, dom, comObj);
+                                let v = that.parseSpecialMAttrString(name, dom, o.value, runValue);
                                 runValue = v;
                                 that.addDomAttr(dom, name, runValue);
                             })
@@ -2596,6 +2865,9 @@
              * @param attrValue 属性值
              */
             addDomAttr: function (dom, attrName, attrValue) {
+                if(!(dom instanceof HTMLElement)) {
+                    return;
+                }
                 //写入属性
                 if (attrName === 'class') {
                     let className = dom.className;
@@ -2747,6 +3019,8 @@
              * @param mAttrValue m-attr的值
              */
             disposeMAttrString: function (obj, value) {
+                // console.log(obj.name)
+                // console.log(value)
                 let newObj = obj;
                 //唯一变量名
                 let uuid = '_m' + this.getUUid(16);
@@ -2756,7 +3030,7 @@
                 let runStr = str1 + str2 + str3;
                 let result;
                 try {
-                    Dep.names = [];
+                    Main.Dep.names = [];
                     let wObj = this.addObjectAttrToGlobal(newObj);
                     result = this.stringToFunRun(newObj, runStr);
                     //注意：实现函数里面不能读取对象里的值否则会改变Dep.names的值导致处理有问题
@@ -2787,7 +3061,7 @@
                             },
                         });
                     } catch (e) {
-
+                        console.error(e)
                     }
                 })
                 return obj1;
@@ -2912,6 +3186,18 @@
                 let heads = document.getElementsByTagName('head');
                 if (heads.length > 0) {
                     heads[0].appendChild(style);
+                    return style;
+                }
+            },
+
+            /**
+             * 将style标签样式添加到head
+             * @param label
+             */
+            addStyleLabelToHead: function (label) {
+                let heads = document.getElementsByTagName('head');
+                if (heads.length > 0) {
+                    heads[0].appendChild(label);
                 }
             },
             /**
@@ -2930,15 +3216,8 @@
                     if (type === 0) {
                         value = this.parseFrameString(parentComObj, value);
                     }
-                    Object.defineProperty(comObj.$props, name, {
-                        enumerable: true,
-                        configurable: true,
-                        get: function () {
-                            let v = value;
-                            that.depIndirectDispose(null, comObj.$props, name);
-                            return v;
-                        },
-                    });
+                    comObj.$props[name] = value;
+
                     return true;
                 }
                 return false;
@@ -2968,16 +3247,6 @@
                                 }
                             });
                         }
-                        Object.keys(comObj.$props).forEach(function (key) {
-                            Object.defineProperty(comObj, key, {
-                                enumerable: true,
-                                configurable: true,
-                                get: function proxyGetter() {
-                                    that.depIndirectDispose(null, comObj.$props, key);
-                                    return comObj.$props[key];
-                                }
-                            });
-                        });
                     }
                 }
             },
@@ -3006,6 +3275,26 @@
                         break;
                 }
             },
+
+
+            /**
+             * 解析普通属性
+             * @param attr
+             * @param dom
+             * @param comObj
+             * @returns {boolean}
+             */
+            parseOrdinaryAttr: function (attr, dom, comObj) {
+                let attrName = attr.name;
+                let mJs = /^m-js:/.test(attrName)
+                let mAttr = /^m-attr:/.test(attrName)
+                let mText = /^m-text:/.test(attrName)
+                if (!(attrName === 'ref' || mJs || mAttr || mText)) {
+                    this.parseOrdinaryAttrBefore(attr, dom, comObj);
+                    return true;
+                }
+                return false;
+            },
             /**
              * 解析组件标签的常规属性
              * @param attr
@@ -3013,10 +3302,7 @@
              */
             parseComponentLabelRoutine: function (attr, comObj) {
                 let name = attr.name;
-                let mJs = this.searchAttrM(attr, /m-js/);
-                let mAttr = this.searchAttrM(attr, /m-attr/);
-                if (!(name === 'ref' || mJs.flag || mAttr.flag)) {
-
+                if (this.parseOrdinaryAttr(attr, comObj.elDom, comObj)) {
                     //添加解析组件标签属性
                     this.addComponentLabelAttr(name, attr.value, 1, comObj);
                 }
@@ -3028,22 +3314,12 @@
         }
     };
 
-    global.Main = Main;
-
-    function getRootPath() {
-        //获取当前网址，如： http://localhost:8088/test/test.jsp
-        let curPath = window.document.location.href;
-        //获取主机地址之后的目录，如： test/test.jsp
-        let pathName = window.document.location.pathname;
-        let pos = curPath.indexOf(pathName);
-        //获取主机地址，如： http://localhost:8088
-        let localhostPath = curPath.substring(0, pos);
-        //获取带"/"的项目名，如：/test
-        let projectName = pathName.substring(0, pathName.substr(1).indexOf('/') + 1);
-        return (localhostPath + projectName);//发布前用此
-    }
-
-    global.input = function (href) {
+    /**
+     * 模块化导入
+     * @param href
+     * @returns {{input}|*}
+     */
+    Main.input = function (href) {
         function load(href) {
             let xhr = new XMLHttpRequest(),
                 okStatus = document.location.protocol === "file:" ? 0 : 200;
@@ -3131,4 +3407,27 @@
         }
         return output;
     }
+
+    /**
+     * 获取项目地址
+     * @returns {string}
+     */
+    Main.getRootPathWeb = function() {
+        //获取当前网址，如： http://localhost:63342/swiper/html/index.html
+        let curWwwPath = window.document.location.href;
+        //获取主机地址之后的目录，如： swiper/html/index.html
+        let pathName = window.document.location.pathname;
+        let pos = curWwwPath.indexOf(pathName);
+        //获取主机地址，如： http://localhost:63342
+        let localhostPath = curWwwPath.substring(0, pos);
+        //获取带"/"的项目名，如：/swiper/html
+        let projectName = pathName.substring(0, pathName.substr(1).lastIndexOf('/') + 1);
+        return localhostPath + projectName;
+    }
+
+    //写入项目地址
+    Main.projectPath = Main.getRootPathWeb();
+    Main.global = global;
+    global.Main = Main;
+    global.input = Main.input;
 })(this);
