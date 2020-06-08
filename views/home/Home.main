@@ -2,7 +2,7 @@
     <div>
         <swiper></swiper>
         <test></test>
-<!--        <main-content></main-content>-->
+        <main-content></main-content>
         <my-segment></my-segment>
     </div>
 </template>
