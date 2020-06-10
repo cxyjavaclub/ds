@@ -1,8 +1,21 @@
 <template>
-    <div>
-        <swiper></swiper>
-        <horizontal-navigation style="margin-top: 20px; border: solid 1px blue;"></horizontal-navigation>
-        <vertical-navigation style="margin-top: 20px; border: solid 1px red;"></vertical-navigation>
+    <div style="">
+        <scroll scroll-mode="3"
+                unilateral-mode="true"
+                style="height: 667px"
+                @arrivals-top="arrivalsTop"
+                @arrivals-bottom="arrivalsBottom"
+                @arrivals-left="arrivalsLeft"
+                @arrivals-right="arrivalsRight"
+                @exceed-right-side="exceedRightSide"
+                @exceed-bottom-side="exceedLeftSide"
+                @mouseup="mouseupFun"
+                style="height: 667px">
+            <swiper></swiper>
+            <horizontal-navigation style="margin-top: 20px; border: solid 1px blue;"></horizontal-navigation>
+            <vertical-navigation style="margin-top: 20px; border: solid 1px red;"></vertical-navigation>
+            <div style="height: 800px; background-color: #7e7ddb;"></div>
+        </scroll>
 <!--        <test></test>-->
 <!--        <main-content></main-content>-->
 <!--        <my-segment></my-segment>-->
@@ -15,6 +28,7 @@
     let MySegment = input('@/component/content/segment/MySegment.main');
     let HorizontalNavigation = input('@/component/content/horizontalnavigation/HorizontalNavigation.main');
     let VerticalNavigation = input('@/component/content/verticalnavigation/VerticalNavigation.main');
+    let scroll = input('@/component/common/scroll/Scroll.main');
     output = {
         components:{
             swiper: swiper,
@@ -22,8 +36,39 @@
             mainContent: mainContent,
             MySegment: MySegment,
             HorizontalNavigation: HorizontalNavigation,
-            VerticalNavigation: VerticalNavigation
+            VerticalNavigation: VerticalNavigation,
+            scroll: scroll
         },
+        methods:{
+            arrivalsTop: function (y, t) {
+                console.log('top')
+            },
+            arrivalsBottom: function (y, t) {
+                console.log('bottom')
+            },
+            arrivalsLeft: function () {
+                console.log('left')
+            },
+            arrivalsRight: function () {
+                console.log('right')
+            },
+            exceedLeftSide: function (y) {
+                if(y > 100){
+                    console.log('刷新')
+                }
+            },
+            exceedRightSide: function (x, obj) {
+
+            },
+            mouseupFun: function (x, y, x1, y1, obj) {
+                if(x < -100){
+                    obj.externalSetTranslateXY(300, -obj.containerWidth, obj.translateY);
+                    setTimeout(() => {
+                        this.$router.goPath('/community');
+                    }, 300)
+                }
+            }
+        }
     }
 </script>
 <style scoped>

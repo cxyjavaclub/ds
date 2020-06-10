@@ -119,14 +119,18 @@
                 this.stopMobile();
                 this.touchstartX = e.touches[0].pageX;
                 this.startMarginLeft = this.marginLeft;
+                e.stopPropagation();
+                e.preventDefault();
             },
             touchmoveFun: function (e) {
                 let x = e.touches[0].pageX;
                 this.marginLeft += x - this.touchstartX;
                 this.mobileMarginLeft(this.marginLeft);
                 this.touchstartX = x;
+                e.stopPropagation();
+                e.preventDefault();
             },
-            touchendFun: function () {
+            touchendFun: function (e) {
                 let value = this.marginLeft - this.startMarginLeft;
                 if(Math.abs(value) / this.width > parseFloat(this.weights)){
                     if(value > 0){
@@ -137,6 +141,8 @@
                 }
                 this.runMobile();
                 this.startMobile();
+                e.stopPropagation();
+                e.preventDefault();
             }
         }
     }
