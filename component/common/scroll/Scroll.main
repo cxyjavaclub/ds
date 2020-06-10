@@ -1,7 +1,10 @@
 <template>
     <div class="scroll">
         <div ref="container" class="container"
-              @touchstart="touchstartFun"
+             @mousedown="mousedownFun"
+             @mousemove="mousemoveFun"
+             @mouseup="mouseupFun"
+             @touchstart="touchstartFun"
               @touchmove="touchmoveFun"
               @touchend="touchendFun">
             <div ref="content" class="content">
@@ -81,19 +84,48 @@
                 this.contentHeight = this.$refs['content'].scrollHeight;
                 this.rangeValueY = this.contentHeight - this.containerHeight;
             },
+            mousedownFun: function (e) {
+                this.mousedownFlag = true;
+                this.touchstartFun(e);
+            },
+            mousemoveFun: function (e) {
+                if(this.mousedownFlag){
+                    this.touchmoveFun(e);
+                }
+            },
+            mouseupFun: function (e) {
+                if(this.mousedownFlag){
+                    this.touchendFun(e);
+                    this.mousedownFlag = false;
+                }
+            },
             ifCondition: function (type) {
                 return type == this.scrollMode || this.scrollMode == 3;
+            },
+            getEventX: function (e) {
+                if(this.mousedownFlag){
+                    return e.pageX;
+                }else{
+                    return e.changedTouches[0].pageX;
+                }
+            },
+            getEventY: function (e) {
+                if(this.mousedownFlag){
+                    return e.pageY;
+                }else{
+                    return e.changedTouches[0].pageY;
+                }
             },
             touchstartFun: function (e) {
                 this.setTransitionDuration(0)
                 if(this.ifCondition(1)){
                     this.arrX = [];
-                    this.coordinateX = e.touches[0].pageX;
+                    this.coordinateX = this.getEventX(e);
                     this.arrX.push({value: this.coordinateX, time: new Date().getTime()});
                 }
                 if(this.ifCondition(2)){
                     this.arrY = [];
-                    this.coordinateY = e.touches[0].pageY;
+                    this.coordinateY = this.getEventY(e);
                     this.arrY.push({value: this.coordinateY, time: new Date().getTime()});
                 }
             },
@@ -258,12 +290,12 @@
             },
             disposeMobile: function (e) {
                 if(this.ifCondition(1)){
-                    let x = e.changedTouches[0].pageX;
+                    let x = this.getEventX(e);
                     this.translateX += this.disposeMobileData(this.arrX, x, this.coordinateX)
                     this.coordinateX = x;
                 }
                 if(this.ifCondition(2)){
-                    let y = e.changedTouches[0].pageY;
+                    let y = this.getEventY(e);
                     this.translateY += this.disposeMobileData(this.arrY, y, this.coordinateY)
                     this.coordinateY = y;
                 }
@@ -273,6 +305,9 @@
     }
 </script>
 <style scoped>
+    .scroll{
+        user-select: none;
+    }
     .container {
         width: 100%;
         height: 100%;

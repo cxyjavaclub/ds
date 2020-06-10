@@ -2,8 +2,6 @@
     <div @touchstart="touchstartFun"
          @touchmove="touchmoveFun"
          @touchend="touchendFun"
-         @mouseover="stopMobile"
-         @mouseleave="startMobile"
          class="my-swi-per"
          :style="{width: width + 'px'}">
 
