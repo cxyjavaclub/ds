@@ -1,0 +1,285 @@
+<template>
+    <div class="scroll">
+        <div ref="container" class="container"
+              @touchstart="touchstartFun"
+              @touchmove="touchmoveFun"
+              @touchend="touchendFun">
+            <div ref="content" class="content">
+                <slot></slot>
+            </div>
+        </div>
+    </div>
+</template>
+<script>
+    output = {
+        props:{
+            //惯性检测时间范围-120
+            limitTime: {
+                type: Number,
+                default: 120
+            },
+            //惯性值倍数
+            multiple: {
+                type: Number,
+                default: 5
+            },
+            //惯性滑动边缘最大值
+            boundaryAddValue:{
+                type: Number,
+                default: 60
+            },
+            //惯性滚动最小时间
+            minTime: {
+                type: Number,
+                default: 50
+            },
+            //滚动模式 1支持横向滚动 2纵向滚动 3横向纵向滚动 其他禁止滚动
+            scrollMode:{
+                type: Number,
+                default: 1
+            }
+        },
+        data: function () {
+            return {
+                translateX: 0,
+                translateY: 0,
+                contentWidth: 0,
+                containerWidth: 0,
+                rangeValueX: 0,
+                containerHeight: 0,
+                contentHeight: 0,
+                rangeValueY: 0
+            }
+        },
+        mounted: function () {
+            setTimeout(() => {
+               this.init();
+            }, 20)
+        },
+        methods:{
+            init: function () {
+                if(this.limitTime.constructor === String){
+                    this.limitTime = parseInt(this.limitTime + '');
+                }
+                if(this.multiple.constructor === String){
+                    this.multiple = parseInt(this.multiple + '');
+                }
+                if(this.boundaryAddValue.constructor === String){
+                    this.boundaryAddValue = parseInt(this.boundaryAddValue + '');
+                }
+                if(this.minTime.constructor === String){
+                    this.minTime = parseInt(this.minTime + '');
+                }
+                if(this.scrollMode.constructor === String){
+                    this.scrollMode = parseInt(this.scrollMode + '');
+                }
+                this.containerWidth = this.$refs['container'].offsetWidth;
+                this.contentWidth = this.$refs['content'].scrollWidth;
+                this.rangeValueX = this.contentWidth - this.containerWidth;
+
+                this.containerHeight = this.$refs['container'].offsetHeight;
+                this.contentHeight = this.$refs['content'].scrollHeight;
+                this.rangeValueY = this.contentHeight - this.containerHeight;
+            },
+            ifCondition: function (type) {
+                return type == this.scrollMode || this.scrollMode == 3;
+            },
+            touchstartFun: function (e) {
+                this.setTransitionDuration(0)
+                if(this.ifCondition(1)){
+                    this.arrX = [];
+                    this.coordinateX = e.touches[0].pageX;
+                    this.arrX.push({value: this.coordinateX, time: new Date().getTime()});
+                }
+                if(this.ifCondition(2)){
+                    this.arrY = [];
+                    this.coordinateY = e.touches[0].pageY;
+                    this.arrY.push({value: this.coordinateY, time: new Date().getTime()});
+                }
+            },
+            touchmoveFun: function (e) {
+                this.disposeMobile(e);
+            },
+            touchendFun: function (e) {
+                let obj;
+                let time = undefined;
+                let flag = false;
+                let edgeValue = [0, 0, 0];
+                this.disposeMobile(e);
+                if (this.ifCondition(1)) {
+                    obj = this.disposeExceedData(this.translateX, this.rangeValueX);
+                    if(obj.flag){
+                        this.translateX = obj.distance;
+                        time = obj.time;
+                        this.setTimeTransitionDuration0(time);
+                    }else{
+                        flag = true;
+                        let arrObj = this.disposeScrollData(this.arrX);
+                        arrObj.distance += this.translateX;
+                        edgeValue[2] = arrObj.onePxTime;
+                        let mobileObj = this.disposeScrollDataMobile(this.rangeValueX, arrObj.distance, arrObj.time, arrObj.onePxTime);
+                        this.translateX = mobileObj.distance;
+                        time = mobileObj.time;
+                        edgeValue[0] = mobileObj.edgeValue;
+                    }
+                }
+                if (this.ifCondition(2)) {
+                    obj = this.disposeExceedData(this.translateY, this.rangeValueY);
+                    if(obj.flag){
+                        this.translateY = obj.distance;
+                        time = obj.time;
+                        this.setTimeTransitionDuration0(time);
+                    }else{
+                        flag = true;
+                        let arrObj = this.disposeScrollData(this.arrY);
+                        arrObj.distance += this.translateY;
+                        if(arrObj.onePxTime > edgeValue[2]) {
+                            edgeValue[2] = arrObj.onePxTime;
+                        }
+                        let mobileObj = this.disposeScrollDataMobile(this.rangeValueY, arrObj.distance, arrObj.time, arrObj.onePxTime);
+                        this.translateY = mobileObj.distance;
+                        if(time) {
+                            if(mobileObj.time > time){
+                                time = mobileObj.time;
+                            }
+                        }else{
+                            time = mobileObj.time;
+                        }
+                        edgeValue[1] = mobileObj.edgeValue;
+                    }
+                }
+                if(time != undefined) {
+                    this.setTimeTranslateXY(time, this.translateX, this.translateY);
+                    if(flag){
+                        this.resetPosition(edgeValue[0], edgeValue[1], time, edgeValue[2]);
+                    }
+                }
+            },
+            setTransitionDuration: function (time) {
+                this.$refs['content'].style.transitionDuration = time + 'ms'
+            },
+            setTimeTransitionDuration0: function (time) {
+                setTimeout(() => {
+                    this.setTransitionDuration(0);
+                }, time);
+            },
+            setTranslateXY: function (x, y) {
+                x = x ? x : 0;
+                y = y ? y : 0;
+                this.$refs['content'].style.transform = `translate3d(${x}px, ${y}px, 0px)`;
+            },
+            setTimeTranslateXY: function (time, x, y) {
+                this.setTransitionDuration(time);
+                this.setTranslateXY(x, y);
+            },
+
+            disposeExceedData: function (value, rangeValue) {
+                let flag = false;
+                let t = 0;
+                let distance = 0;
+                if(value < -rangeValue){
+                    flag = true;
+                    distance = -rangeValue;
+                    t = -rangeValue - value;
+                }else if(value > 0){
+                    flag = true;
+                    t = value;
+                }
+                return {
+                    flag: flag,
+                    distance: distance,
+                    time: t,
+                    onePxTime: 1
+                };
+            },
+
+            disposeScrollData: function (arr) {
+                let last = arr[arr.length - 1];
+                let find;
+                for (let o of arr) {
+                    let time = last.time - o.time;
+                    if (time < this.limitTime) {
+                        find = {
+                            time: time,
+                            value: last.value - o.value
+                        };
+                        break;
+                    }
+                }
+                //计算移动宽度
+                let distance = find.value * this.multiple;
+                let onePxTime = Math.abs(find.value) / find.time;
+                //计算速度
+                let time = Math.abs(onePxTime * distance);
+                return {
+                    distance: distance,
+                    onePxTime: onePxTime,
+                    time: time < this.minTime ? this.minTime + 100 : time
+                }
+            },
+            resetPosition: function (x, y, time, onePxTime) {
+                setTimeout(() => {
+                    let t = onePxTime * this.boundaryAddValue;
+                    this.translateX = x;
+                    this.translateY = y;
+                    this.setTimeTranslateXY(t, x, y);
+                    this.setTimeTransitionDuration0(t);
+                }, time + 2);
+            },
+            disposeEdge: function (v, time, onePxTime) {
+                if(v > this.boundaryAddValue){
+                    time -= (v - this.boundaryAddValue) * onePxTime;
+                }else{
+                    time += (this.boundaryAddValue - v) * onePxTime;
+                }
+                return time;
+            },
+            disposeScrollDataMobile: function (rangeValue, distance, time, onePxTime) {
+                let edgeValue = distance;
+                if(distance < -rangeValue){
+                    time = this.disposeEdge(-rangeValue - distance, time, onePxTime);
+                    distance = -rangeValue -this.boundaryAddValue;
+                    edgeValue = -rangeValue;
+                }else if(distance > 0){
+                    time = this.disposeEdge(distance, time, onePxTime, 0);
+                    distance = this.boundaryAddValue;
+                    edgeValue = 0;
+                }
+                return {
+                    distance: distance,
+                    time: time,
+                    edgeValue: edgeValue
+                }
+            },
+            disposeMobileData: function (arr, value, coordinate) {
+                arr.push({value: value, time: new Date().getTime()})
+                let v = value - coordinate;
+                return v
+            },
+            disposeMobile: function (e) {
+                if(this.ifCondition(1)){
+                    let x = e.changedTouches[0].pageX;
+                    this.translateX += this.disposeMobileData(this.arrX, x, this.coordinateX)
+                    this.coordinateX = x;
+                }
+                if(this.ifCondition(2)){
+                    let y = e.changedTouches[0].pageY;
+                    this.translateY += this.disposeMobileData(this.arrY, y, this.coordinateY)
+                    this.coordinateY = y;
+                }
+                this.setTranslateXY(this.translateX, this.translateY);
+            }
+        }
+    }
+</script>
+<style scoped>
+    .container {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+    }
+    .content{
+        transition-property: all;
+        transition-timing-function: ease-out;
+    }
+</style>

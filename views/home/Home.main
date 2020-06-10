@@ -1,9 +1,11 @@
 <template>
     <div>
         <swiper></swiper>
-        <test></test>
-        <main-content></main-content>
-        <my-segment></my-segment>
+        <horizontal-navigation style="margin-top: 20px; border: solid 1px blue;"></horizontal-navigation>
+        <vertical-navigation style="margin-top: 20px; border: solid 1px red;"></vertical-navigation>
+<!--        <test></test>-->
+<!--        <main-content></main-content>-->
+<!--        <my-segment></my-segment>-->
     </div>
 </template>
 <script>
@@ -11,15 +13,21 @@
     let test = input('@/component/content/test/Test.main');
     let mainContent = input('@/component/content/maincontent/mainContent.main');
     let MySegment = input('@/component/content/segment/MySegment.main');
+    let HorizontalNavigation = input('@/component/content/horizontalnavigation/HorizontalNavigation.main');
+    let VerticalNavigation = input('@/component/content/verticalnavigation/VerticalNavigation.main');
     output = {
         components:{
             swiper: swiper,
             test: test,
             mainContent: mainContent,
             MySegment: MySegment,
+            HorizontalNavigation: HorizontalNavigation,
+            VerticalNavigation: VerticalNavigation
         },
     }
 </script>
 <style scoped>
-
+    .content{
+        color: red
+    }
 </style>

@@ -1,5 +1,12 @@
 <template>
-    <div @touchstart="touchstartFun" @touchmove="touchmoveFun" @touchend="touchendFun"  @mouseover="stopMobile" @mouseleave="startMobile" class="my-swi-per" :style="{width: width + 'px'}">
+    <div @touchstart="touchstartFun"
+         @touchmove="touchmoveFun"
+         @touchend="touchendFun"
+         @mouseover="stopMobile"
+         @mouseleave="startMobile"
+         class="my-swi-per"
+         :style="{width: width + 'px'}">
+
         <div ref="imgContainer" class="img-container" :style="{width: width * (imgData.length + 2) + 'px'}">
             <img m-for="v in imgData" :src="v"  :style="{width: width + 'px', height: imgHeight + 'px'}">
         </div>
@@ -66,7 +73,7 @@
         },
         methods: {
             init: function () {
-                let imgContainer = this.$refs.imgContainer;
+                let imgContainer = this.$refs['imgContainer'];
                 let children = imgContainer.children;
                 if(children.length > 1){
                     imgContainer.insertBefore(children[children.length - 1].cloneNode(true), children[0]);
@@ -108,7 +115,7 @@
             },
             mobileMarginLeft: function (value) {
                 this.marginLeft = value;
-                this.$refs.imgContainer.style.marginLeft = value + 'px';
+                this.$refs['imgContainer'].style.marginLeft = value + 'px';
             },
             touchstartFun: function (e) {
                 this.stopMobile();
