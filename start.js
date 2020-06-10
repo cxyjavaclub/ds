@@ -4,6 +4,7 @@ Main.use(path);
 
 //注册路由插件
 let router = input('router/index.js');
+
 Main.use(router);
 
 let myTabBar = input('component/content/tabbar/MyTabbar.main')
