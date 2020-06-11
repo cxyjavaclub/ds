@@ -4,7 +4,18 @@
     </div>
 </template>
 <script>
-    output = {}
+    output = {
+        mounted: function () {
+            setTimeout(() => {
+                let userId = this.$main.container.get('userId');
+                console.log(1212)
+                if(!userId){
+                    this.$router.replace('/login');
+                }
+            }, 10)
+
+        }
+    }
 </script>
 <style scoped>
 

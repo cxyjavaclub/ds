@@ -431,19 +431,19 @@
             },
             disposeMobile: function (e) {
                 let unilateralValue = null;
-                if (this.ifCondition(1)) {
-                    let x = this.getEventX(e);
-                    unilateralValue = this.translateX;
-                    this.translateX += this.disposeMobileData(this.arrX, x, this.coordinateX)
-                    this.disposeUnilateralMode(1, unilateralValue, this.translateX);
-                    this.coordinateX = x;
-                }
                 if (this.ifCondition(2)) {
                     let y = this.getEventY(e);
                     unilateralValue = this.translateY;
                     this.translateY += this.disposeMobileData(this.arrY, y, this.coordinateY)
                     this.disposeUnilateralMode(2, unilateralValue, this.translateY);
                     this.coordinateY = y;
+                }
+                if (this.ifCondition(1)) {
+                    let x = this.getEventX(e);
+                    unilateralValue = this.translateX;
+                    this.translateX += this.disposeMobileData(this.arrX, x, this.coordinateX)
+                    this.disposeUnilateralMode(1, unilateralValue, this.translateX);
+                    this.coordinateX = x;
                 }
                 this.setCompulsoryTranslateXY(this.translateX, this.translateY);
             }

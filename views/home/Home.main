@@ -1,6 +1,6 @@
 <template>
     <div style="">
-        <scroll scroll-mode="3"
+        <scroll scroll-mode="2"
                 unilateral-mode="true"
                 style="height: 667px"
                 @arrivals-top="arrivalsTop"

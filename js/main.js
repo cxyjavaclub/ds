@@ -18,12 +18,29 @@
     //全局容器
     let globalContainer = {};
 
+    //获取项目地址
+    (function() {
+        //获取当前网址，如： http://localhost:63342/swiper/html/index.html
+        let curWwwPath = window.document.location.href;
+        //获取主机地址之后的目录，如： swiper/html/index.html
+        let pathName = window.document.location.pathname;
+        let pos = curWwwPath.indexOf(pathName);
+        //获取主机地址，如： http://localhost:63342
+        Main.localhostPath = curWwwPath.substring(0, pos);
+        //获取带"/"的项目名，如：/swiper/html
+        Main.projectName = pathName.substring(0, pathName.substr(1).lastIndexOf('/') + 1);
+        //写入项目地址
+        Main.projectPath = Main.localhostPath + Main.projectName;
+    })();
+
     /**
      * 添加一下自定义属性
      */
     (function () {
         //全局组件存储
         Main.globalComponents = [];
+        //组件被创造完成运行
+        Main.componentCreatedLoadRuns = [];
         //组件加载完成运行
         Main.componentLoadRuns = [];
         //组件原型解析完成运行
@@ -76,6 +93,14 @@
             return globalContainer[name];
         }
         return null;
+    }
+
+    /**
+     * 组件被创造完成运行
+     * @param fun
+     */
+    Main.addComponentCreatedLoadRuns = function (fun) {
+        Main.componentCreatedLoadRuns.push(fun);
     }
 
     /**
@@ -601,6 +626,9 @@
              * 组件解析之前完成
              */
             componentParseFront: function (comObj) {
+                for (const p of Main.componentCreatedLoadRuns) {
+                    p(comObj);
+                }
                 if (comObj.created) {
                     comObj.created();
                 }
@@ -616,6 +644,7 @@
                     p(comObjPrototype);
                 }
             },
+
             /**
              * 组件加载完成
              * @param comObj
@@ -625,8 +654,8 @@
                 for (const p of Main.componentLoadRuns) {
                     p(comObj);
                 }
-                if (comObj.mounted) {
-                    comObj.mounted();
+                if (comObj.beforeMount) {
+                    comObj.beforeMount();
                 }
             },
 
@@ -639,6 +668,9 @@
                 //运行组件加载完成运行函数
                 for (const p of Main.componentAddDomLoadRuns) {
                     p(comObj);
+                }
+                if (comObj.mounted) {
+                    comObj.mounted();
                 }
                 comObj.$root = Main.$root;
             },
@@ -778,10 +810,7 @@
                         let com = this.getFindNameComponent(comObj, name);
                         //获取到组件
                         if (com) {
-                            //解析组件并替换
-                            let newCom = this.parseComponent(com, dom, comObj);
-                            this.runFunction(funCom, newCom);
-                            this.componentAddDomLoad(newCom);
+                            this.completeParseComponent(com, dom, comObj, funCom);
                         } else {
                             //框架解析普通标签之前运行
                             this.parseOrdinaryLabelBefore(dom, comObj);
@@ -817,6 +846,21 @@
                     }
                 }
                 return com;
+            },
+
+            /**
+             * 完整解析组件，与parseComponent的区别是这个添加到了dom元素里
+             * @param com
+             * @param dom
+             * @param comObj
+             * @param funCom
+             */
+            completeParseComponent: function (com, dom, comObj, funCom) {
+                //解析组件并替换
+                let newCom = this.parseComponent(com, dom, comObj);
+                this.runFunction(funCom, newCom);
+                this.componentAddDomLoad(newCom);
+                return newCom;
             },
 
             /**
@@ -2143,19 +2187,23 @@
              * @param obj
              * @param name
              * @param value
+             * @param noFlag
              */
-            dataHijack: function (obj, name, value) {
-                this.observe(value);
+            dataHijack: function (obj, name, value, noFlag) {
+                if(!noFlag) {
+                    this.observe(value);
+                }
                 let dep = new Main.Dep();
                 let that = this;
                 Object.defineProperty(obj, name, {
+                    enumerable: true,
                     configurable: true,
                     get: function () {
                         that.depIndirectDispose(dep, obj, name);
                         return value;
                     },
                     set: function (v) {
-                        // console.log('值发生改变' + value + "----->" + v);
+                        // console.log(name + '值发生改变' + value + "----->" + v);
                         value = v;
                         dep.runAll();
                     }
@@ -3592,27 +3640,8 @@
             }
         }
         return str + ';';
-    }
+    };
 
-    /**
-     * 获取项目地址
-     * @returns {string}
-     */
-    Main.getRootPathWeb = function() {
-        //获取当前网址，如： http://localhost:63342/swiper/html/index.html
-        let curWwwPath = window.document.location.href;
-        //获取主机地址之后的目录，如： swiper/html/index.html
-        let pathName = window.document.location.pathname;
-        let pos = curWwwPath.indexOf(pathName);
-        //获取主机地址，如： http://localhost:63342
-        let localhostPath = curWwwPath.substring(0, pos);
-        //获取带"/"的项目名，如：/swiper/html
-        let projectName = pathName.substring(0, pathName.substr(1).lastIndexOf('/') + 1);
-        return localhostPath + projectName;
-    }
-
-    //写入项目地址
-    Main.projectPath = Main.getRootPathWeb();
     Main.global = global;
     global.Main = Main;
     global.input = Main.input;
