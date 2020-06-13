@@ -7,7 +7,7 @@ let login = '@/views/login/Login.main'
 let routerObj = new router({
     routes: [
         {
-            path: '/ds/index.html',
+            path: '/home',
             component: home
         },
         {

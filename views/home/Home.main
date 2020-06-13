@@ -14,7 +14,7 @@
             <swiper></swiper>
             <horizontal-navigation style="margin-top: 20px; border: solid 1px blue;"></horizontal-navigation>
             <vertical-navigation style="margin-top: 20px; border: solid 1px red;"></vertical-navigation>
-            <div style="height: 800px; background-color: #7e7ddb;"></div>
+            <div onclick="console.log(123)" style="height: 800px; background-color: #7e7ddb;"></div>
         </scroll>
 <!--        <test></test>-->
 <!--        <main-content></main-content>-->
@@ -40,6 +40,12 @@
             scroll: scroll
         },
         methods:{
+            divClick: function (e, t) {
+                console.log(t)
+                console.log(e)
+                e.stopPropagation();
+                e.preventDefault();
+            },
             arrivalsTop: function (y, t) {
                 console.log('top')
             },

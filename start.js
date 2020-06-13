@@ -30,7 +30,7 @@ new Main({
         tabbarClick: function (s) {
             switch(s){
                 case '首页':
-                    this.$router.goPath('/ds/index.html')
+                    this.$router.goPath('/home')
                     break;
                 case '社区':
                     this.$router.goPath('/community')

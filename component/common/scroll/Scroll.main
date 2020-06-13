@@ -159,7 +159,7 @@
             },
             lastSpecialDispose: function (e) {
                 e.stopPropagation();
-                e.preventDefault();
+                // e.preventDefault();
             },
             touchstartFun: function (e) {
                 this.setTransitionDuration(0)
